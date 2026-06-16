@@ -5,11 +5,14 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url",      "value": "http://localhost:8000/api/v1" },
-    { "key": "entity_type",   "value": "contributors" },
-    { "key": "entity_id",     "value": "U001" },
-    { "key": "document_type", "value": "identity" },
-    { "key": "filename",      "value": "passport.pdf" }
+    { "key": "base_url",               "value": "http://localhost:8000/api/v1" },
+    { "key": "entity_type",            "value": "contributors" },
+    { "key": "entity_id",              "value": "U001" },
+    { "key": "nis_id",                 "value": "U001" },
+    { "key": "document_type",          "value": "IDENTITY" },
+    { "key": "filename",               "value": "passport.pdf" },
+    { "key": "correlation_id",         "value": "mulesoft-corr-001" },
+    { "key": "salesforce_record_id",   "value": "0031000000AbCdEAAZ" }
   ],
   "item": [
     {
@@ -39,6 +42,36 @@
       ]
     },
     {
+      "name": "NIS",
+      "item": [
+        {
+          "name": "Register NIS Person",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/nis/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nis_id\": \"{{nis_id}}\",\n  \"person_name\": \"John Doe\",\n  \"entity_type\": \"CONTRIBUTOR\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('nis_id matches', () => {",
+                  "  pm.expect(pm.response.json().nis_id).to.eql(pm.collectionVariables.get('nis_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Documents",
       "item": [
         {
@@ -49,11 +82,13 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "entity_type",   "value": "{{entity_type}}",   "type": "text" },
-                { "key": "entity_id",     "value": "{{entity_id}}",     "type": "text" },
-                { "key": "document_type", "value": "{{document_type}}", "type": "text" },
-                { "key": "uploaded_by",   "value": "POSTMAN_TEST",      "type": "text" },
-                { "key": "file", "type": "file", "src": [] }
+                { "key": "file",                  "type": "file", "src": [] },
+                { "key": "nis_id",                "value": "{{nis_id}}",               "type": "text" },
+                { "key": "entity_type",           "value": "{{entity_type}}",          "type": "text" },
+                { "key": "document_type",         "value": "{{document_type}}",        "type": "text" },
+                { "key": "correlation_id",        "value": "{{correlation_id}}",       "type": "text" },
+                { "key": "salesforce_record_id",  "value": "{{salesforce_record_id}}", "type": "text" },
+                { "key": "uploaded_by",           "value": "POSTMAN_TEST",             "type": "text" }
               ]
             }
           },
@@ -183,10 +218,13 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "entity_type",   "value": "invalid_type", "type": "text" },
-                { "key": "entity_id",     "value": "X001",         "type": "text" },
-                { "key": "document_type", "value": "misc",         "type": "text" },
-                { "key": "file", "type": "file", "src": [] }
+                { "key": "file",                  "type": "file", "src": [] },
+                { "key": "nis_id",                "value": "X001",               "type": "text" },
+                { "key": "entity_type",           "value": "invalid_type",       "type": "text" },
+                { "key": "document_type",         "value": "OTHER",              "type": "text" },
+                { "key": "correlation_id",        "value": "mulesoft-corr-err",  "type": "text" },
+                { "key": "salesforce_record_id",  "value": "0031000000XxXxXAAZ", "type": "text" },
+                { "key": "uploaded_by",           "value": "POSTMAN_TEST",       "type": "text" }
               ]
             }
           },
