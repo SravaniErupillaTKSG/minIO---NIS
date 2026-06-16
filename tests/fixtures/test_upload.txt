@@ -1,0 +1,5 @@
+This is a sample DMS test document.
+Entity: contributors
+ID: U001
+Document type: identity
+Use this file when testing the upload API via Postman or curl.

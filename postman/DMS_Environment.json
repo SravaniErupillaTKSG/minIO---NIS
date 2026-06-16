@@ -1,0 +1,53 @@
+{
+  "id": "dms-local-env",
+  "name": "DMS Local Development",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "minio_console",
+      "value": "http://localhost:9001",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "entity_type",
+      "value": "contributors",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "entity_id",
+      "value": "U001",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "document_type",
+      "value": "identity",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "filename",
+      "value": "test_upload.pdf",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "presigned_url",
+      "value": "",
+      "type": "default",
+      "enabled": true,
+      "_description": "Auto-populated by the Presigned Download URL request test script"
+    }
+  ],
+  "_postman_variable_scope": "environment",
+  "info": {
+    "description": "Environment variables for DMS local development. Import alongside DMS_Collection.json.\n\nTo switch to Docker all-in-one mode, change base_url to http://localhost:8000/api/v1 (same — FastAPI runs on 8000 in both modes)."
+  }
+}

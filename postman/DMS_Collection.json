@@ -1,0 +1,224 @@
+{
+  "info": {
+    "name": "DMS Document Service",
+    "description": "Complete test collection for the DMS FastAPI Document Service.\n\nSet the {{base_url}} variable to http://localhost:8000/api/v1 before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",      "value": "http://localhost:8000/api/v1" },
+    { "key": "entity_type",   "value": "contributors" },
+    { "key": "entity_id",     "value": "U001" },
+    { "key": "document_type", "value": "identity" },
+    { "key": "filename",      "value": "passport.pdf" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is healthy', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Upload Document",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/documents/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "entity_type",   "value": "{{entity_type}}",   "type": "text" },
+                { "key": "entity_id",     "value": "{{entity_id}}",     "type": "text" },
+                { "key": "document_type", "value": "{{document_type}}", "type": "text" },
+                { "key": "uploaded_by",   "value": "POSTMAN_TEST",      "type": "text" },
+                { "key": "file", "type": "file", "src": [] }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has object_name', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('object_name');",
+                  "});",
+                  "pm.collectionVariables.set('object_name', pm.response.json().object_name);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Metadata",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/documents/metadata/{{entity_type}}/{{entity_id}}/{{document_type}}/{{filename}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has etag', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('etag');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download Document",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/documents/download/{{entity_type}}/{{entity_id}}/{{document_type}}/{{filename}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Disposition present', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Disposition')).to.include('attachment');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Presigned Download URL",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/documents/presigned/download/{{entity_type}}/{{entity_id}}/{{document_type}}/{{filename}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has url', () => pm.expect(pm.response.json().url).to.be.a('string'));",
+                  "pm.test('Method is GET', () => pm.expect(pm.response.json().method).to.eql('GET'));",
+                  "pm.collectionVariables.set('presigned_url', pm.response.json().url);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Presigned Upload URL",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/documents/presigned/upload/{{entity_type}}/{{entity_id}}/{{document_type}}/new_file.pdf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Method is PUT', () => pm.expect(pm.response.json().method).to.eql('PUT'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/documents/{{entity_type}}/{{entity_id}}/{{document_type}}/{{filename}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Deleted true', () => {",
+                  "  pm.expect(pm.response.json().deleted).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Upload - Invalid Entity Type",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/documents/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "entity_type",   "value": "invalid_type", "type": "text" },
+                { "key": "entity_id",     "value": "X001",         "type": "text" },
+                { "key": "document_type", "value": "misc",         "type": "text" },
+                { "key": "file", "type": "file", "src": [] }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Download - Not Found",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/documents/download/contributors/NOTEXIST/identity/ghost.pdf"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

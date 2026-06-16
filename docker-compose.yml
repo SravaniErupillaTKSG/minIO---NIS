@@ -1,0 +1,99 @@
+services:
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: dms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - dms-network
+
+  minio:
+    image: minio/minio:RELEASE.2024-03-21T23-13-43Z
+    container_name: dms-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # S3-compatible API
+      - "9001:9001" # MinIO Web Console
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      MINIO_BROWSER_REDIRECT_URL: http://localhost:9001
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD-SHELL", "mc alias set local http://localhost:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD --api s3v4 && mc ready local" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    networks:
+      - dms-network
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: dms-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    volumes:
+      - ./infra/minio/init-buckets.sh:/init-buckets.sh
+    entrypoint: [ "/bin/sh", "/init-buckets.sh" ]
+    networks:
+      - dms-network
+
+  fastapi:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    container_name: dms-fastapi
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin123}
+      - MINIO_SECURE=false
+      - APP_ENV=development
+      # SQLite lives inside the data/ volume so it survives container restarts
+      - DATABASE_URL=sqlite:////app/data/dms_scan.db
+    env_file:
+      - .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./app:/app/app # hot-reload in development
+      - ./logs:/app/logs # persist logs
+      - dms_data:/app/data # persist SQLite database
+    networks:
+      - dms-network
+
+volumes:
+  redis_data:
+    driver: local
+
+  minio_data:
+    driver: local
+
+  dms_data:
+    driver: local
+
+networks:
+  dms-network:
+    driver: bridge
